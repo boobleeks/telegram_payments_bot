@@ -6,6 +6,12 @@ from config import SUPPORT_GROUP_ID
 from aiogram.fsm.context import FSMContext
 from keyboards import ru_keyboards as kb
 
+from database.crud import get_or_create_user, create_transaction
+
+from database.models import User
+from database.models import Transaction
+
+
 import re
 import random
 
@@ -22,7 +28,7 @@ async def russian_answer(callback: CallbackQuery):
     await callback.answer('')
     user = callback.from_user
     await callback.message.answer_photo(
-        photo='AgACAgIAAxkBAAOIaFRpYhjlu_NyqRHls90i4kL5kUgAAifyMRuIFaBKQVnyTW6DbvABAAMCAANzAAM2BA', 
+        photo='https://i.ibb.co/hRN3HhFz/photo-2025-06-22-15-43-52.jpg', 
         caption=f'{user.first_name} добро пожаловать в Paybet! 🎉 \n\nПополняй и выводи со счёта 1x БЕСПЛАТНО!💸✨', 
         reply_markup = kb.ru_options)
 
@@ -30,18 +36,16 @@ async def russian_answer(callback: CallbackQuery):
 # Обработка вывода
 
 @router.callback_query(F.data == 'ru_withdraw')
-async def russian_deposit_answer(callback: CallbackQuery, state: FSMContext):
+async def russian_withdraw_answer(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.answer()
 
     await state.update_data(tg_id=callback.from_user.id)
     await state.update_data(type='withdraw')
     
-    await callback.message.answer_photo(
-        photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='Введите ваш ID 1xbet ⬇️'
-    )
-    await state.set_state(RuUserReg.x_id)
+    await callback.message.answer("📞 Пожалуйста, отправьте ваш номер телефона:", reply_markup=kb.ru_phone_number_kb)
+
+    await state.set_state(RuUserReg.phone)
 
 # Обработка депозита
 
@@ -53,24 +57,10 @@ async def russian_deposit_answer(callback: CallbackQuery, state: FSMContext):
     await state.update_data(tg_id=callback.from_user.id)
     await state.update_data(type='deposit')
     
-    await callback.message.answer_photo(
-        photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='Введите ваш ID 1xbet ⬇️'
-    )
-    await state.set_state(RuUserReg.x_id)
+    await callback.message.answer("📞 Пожалуйста, отправьте ваш номер телефона:", reply_markup=kb.ru_phone_number_kb)
 
-@router.message(RuUserReg.x_id)
-async def process_x_id(message: Message, state: FSMContext):
-    platform_id = message.text.strip()
-
-    if not platform_id.isdigit() or not (7 <= len(platform_id) <= 12):
-        await message.answer("❌ Пожалуйста, введите ID только цифрами (от 7 до 12 символов)")
-        return
-
-    await state.update_data(x_id=platform_id)
-    await message.answer(f"✅ ID принят: `{platform_id}`", parse_mode="Markdown")
-    await message.answer("📞 Пожалуйста, отправьте ваш номер телефона:", reply_markup=kb.ru_phone_number_kb)
     await state.set_state(RuUserReg.phone)
+    
 
 @router.message(RuUserReg.phone)
 async def process_contact(message: Message, state: FSMContext):
@@ -79,22 +69,53 @@ async def process_contact(message: Message, state: FSMContext):
         return
 
     phone_number = message.contact.phone_number
+
     await state.update_data(phone=phone_number)
+
     await message.answer(f"✅ Номер принят: `{phone_number}`", parse_mode="Markdown", reply_markup=kb.ReplyKeyboardRemove())
+
+    await message.answer_photo(
+        photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
+        caption='Введите ваш ID ⬇️'
+    )
+    await state.set_state(RuUserReg.x_id)
+
+
+
+@router.message(RuUserReg.x_id)
+async def process_x_id(message: Message, state: FSMContext):
+
+    platform_id = message.text.strip()
+
+    if not platform_id.isdigit() or not (7 <= len(platform_id) <= 12):
+        await message.answer("❌ Пожалуйста, введите ID только цифрами (от 7 до 12 символов)")
+        return
+
+    await state.update_data(x_id=platform_id)
+
+    await message.answer(f"✅ ID принят: `{platform_id}`", parse_mode="Markdown")
 
     await message.answer(
         "💸 Введите сумму пополнения:\n\n"
-        "🔹 *Мин.*: 30 000 сум\n"
-        "🔹 *Макс.*: 30 000 000 сум\n\n"
+        "🔹 *Мин.: 30 000 сум*\n"
+        "🔹 *Макс.: 30 000 000 сум*\n\n"
         "🔸 Пример: `156000` (только цифры, без пробелов)",
         parse_mode="Markdown"
     )
+
     await state.set_state(RuUserReg.amount)
 
 @router.message(RuUserReg.amount)
 async def process_amount(message: Message, state: FSMContext):
     raw_text = message.text.replace(" ", "").strip()
 
+    data = await state.get_data()
+    tg_id = message.from_user.id
+    phone = str(data.get("phone", "Не указана"))
+
+    await get_or_create_user(tg_id=tg_id, phone=phone)
+
+ 
     if not raw_text.isdigit():
         await message.answer("❌ Используйте только цифры. Пример: `156000`", parse_mode="Markdown")
         return
@@ -123,15 +144,15 @@ async def show_summary(message: Message, state: FSMContext):
 
     full_text = (
         f"♻️ *ID Заявки: {payment_number}*\n"
-        f"💳 *Ваша карта*: {card}\n"
-        f"🆔 *Ваш 1X ID*: {x_id}\n"
-        f"💸 *Сумма*: `{amount}` сум\n\n"
+        f"💳 *Ваша карта: {card}*\n"
+        f"🆔 *Ваш 1X ID: {x_id}*\n"
+        f"💸 *Сумма: {amount} сум*\n\n"
         )
     
     if data['type'] == 'deposit':
         full_text += (
         f"❗️ *Переведите на карту* 👇\n"
-        f"~~~~ `9860180110103520` ~~~~\n\n"
+        f"~~~~ `9860180110103520` ~~~~\n"
         )
         full_text += "\n\n⌛️ *Статус*: Ожидает оплаты..."
         keyboard = kb.ru_payment_kb
@@ -170,6 +191,7 @@ async def process_card_number(message: Message, state: FSMContext):
         await state.set_state(RuUserReg.summary)
         await show_summary(message, state)
 
+
 @router.message(RuUserReg.confirm_code)
 async def confirm_code(message: Message, state: FSMContext):
     code = message.text.strip()
@@ -191,10 +213,14 @@ async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
     card = data.get("card", "Не указана")
     x_id = data.get("x_id", "Не указан")
     amount = data.get("amount", "Не указана")
-    phone = data.get("phone", "Не указана")
+    phone = str(data.get("phone", "Не указана"))
     user_id = data.get("tg_id")
     confirmation_code = data.get('confirm_code')
-    
+    type = data.get("type", "Не указана")
+
+    user = await get_or_create_user(tg_id = user_id, phone=phone)
+    await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
+        
     payment_number = random.randint(1000000000, 9999999999)
     masked_card = f"{card}"
 
@@ -226,13 +252,19 @@ async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "ru_payment_done")
 async def confirm_payment(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
     data = await state.get_data()
     card = data.get("card", "Не указана")
     x_id = data.get("x_id", "Не указан")
     amount = data.get("amount", "Не указана")
-    phone = data.get("phone", "Не указана")
+    phone = str(data.get("phone", "Не указана"))
     user_id = data.get("tg_id")
-    
+    confirmation_code = data.get('confirm_code', "Не указана")
+    type = data.get("type", "Не указана")
+
+    user = await get_or_create_user(user_id, phone=phone)
+    await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
+
     payment_number = random.randint(1000000000, 9999999999)
     masked_card = f"{card}"
 
@@ -257,7 +289,7 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 @router.callback_query(F.data.startswith("ruconfirm_"))
-async def admin_confirm_payment(callback: CallbackQuery):
+async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
     try:
         _, payment_number, user_id = callback.data.split('_')
         try:
@@ -273,6 +305,11 @@ async def admin_confirm_payment(callback: CallbackQuery):
             
             await callback.answer("Платеж подтвержден!", show_alert=True)
             
+            user = await User.get(tg_id=user_id)
+            tx = await Transaction.filter(user=user).order_by('-created_at').first()
+            tx.status = "Оплачено"
+            await tx.save()
+
         except TelegramBadRequest as e:
             if "chat not found" in str(e):
                 await callback.message.edit_text(
@@ -282,9 +319,11 @@ async def admin_confirm_payment(callback: CallbackQuery):
             else:
                 await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
                 raise
+
     except Exception as e:
         await callback.answer(f"❌ Ошибка системы: {e}", show_alert=True)
         raise
+
 
 @router.callback_query(F.data == "go_home")
 async def back_to_main(callback: CallbackQuery):

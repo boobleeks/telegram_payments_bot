@@ -2,3 +2,7 @@ venv
 .env
 .venv
 
+# SQLite database and related files
+bot.db
+bot.db-shm
+bot.db-wal

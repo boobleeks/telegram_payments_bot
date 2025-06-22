@@ -3,6 +3,9 @@ from handlers import routers
 from config import TOKEN
 import asyncio
 import logging
+import os
+from database.db import init_db
+
 
 
 async def main():
@@ -12,6 +15,7 @@ async def main():
     for router in routers:
         dp.include_router(router)
     
+    await init_db()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

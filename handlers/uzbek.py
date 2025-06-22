@@ -6,8 +6,13 @@ from handlers.states import UzUserReg
 import re
 import random
 from aiogram.exceptions import TelegramBadRequest
-
 from config import SUPPORT_GROUP_ID
+
+from database.crud import get_or_create_user, create_transaction
+
+from database.models import User
+from database.models import Transaction
+
 
 router = Router()
 #### Uzbek version
@@ -18,25 +23,26 @@ async def uzbek_answer(callback: CallbackQuery):
     await callback.answer('')
     user = callback.from_user
     await callback.message.answer_photo(
-        photo='AgACAgIAAxkBAAOIaFRpYhjlu_NyqRHls90i4kL5kUgAAifyMRuIFaBKQVnyTW6DbvABAAMCAANzAAM2BA', 
+        photo='https://i.ibb.co/hRN3HhFz/photo-2025-06-22-15-43-52.jpg', 
         caption=f'{user.first_name} Paybet’ga xush kelibsiz! 🎉 \n\n1x hisobingizni BEPUL to‘ldiring va yeching! 💸✨', 
         reply_markup = kb.uz_options)
-    
+
+
+# Обработка вывода
+
 @router.callback_query(F.data == 'uz_withdraw')
-async def uzbek_deposit_answer(callback: CallbackQuery, state: FSMContext):
+async def uzbek_withdraw_answer(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.answer()
 
     await state.update_data(tg_id=callback.from_user.id)
     await state.update_data(type='withdraw')
     
-    await callback.message.answer_photo(
-        photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='1xbet id raqamini kiriting ⬇️'
-    )
-    await state.set_state(UzUserReg.x_id)
+    await callback.message.answer("📞 Iltimos, telefon raqamingizni yuboring:", reply_markup= kb.uz_phone_number_kb)
 
+    await state.set_state(UzUserReg.phone)
 
+# Обработка депозита
 
 @router.callback_query(F.data == 'uz_deposit')
 async def uzbek_deposit_answer(callback: CallbackQuery, state: FSMContext):
@@ -45,18 +51,35 @@ async def uzbek_deposit_answer(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(tg_id=callback.from_user.id)
     await state.update_data(type='deposit')
+    
+    await callback.message.answer("📞 Iltimos, telefon raqamingizni yuboring:", reply_markup= kb.uz_phone_number_kb)
 
-    await callback.message.answer_photo(
+    await state.set_state(UzUserReg.phone)
+    
+
+@router.message(UzUserReg.phone)
+async def process_contact(message: Message, state: FSMContext):
+    if not message.contact:
+        await message.answer("❗️ Iltimos, tugmani bosib raqamni yuboring.")
+        return
+
+    phone_number = message.contact.phone_number
+
+    await state.update_data(phone=phone_number)
+
+    await message.answer(f"✅ Raqam qabul qilindi: {phone_number}", parse_mode="Markdown", reply_markup= kb.ReplyKeyboardRemove())
+
+    await message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption=f'1xbet id raqamini kiriting ⬇️',
-        )
-
+        caption='ID raqamni kiriting ⬇️'
+    )
     await state.set_state(UzUserReg.x_id)
 
 
 
 @router.message(UzUserReg.x_id)
 async def process_x_id(message: Message, state: FSMContext):
+
     platform_id = message.text.strip()
 
     if not platform_id.isdigit() or not (7 <= len(platform_id) <= 12):
@@ -64,32 +87,14 @@ async def process_x_id(message: Message, state: FSMContext):
         return
 
     await state.update_data(x_id=platform_id)
-    
-    await message.answer(f"✅ ID qabul qilindi: `{platform_id}`", parse_mode="Markdown")
 
-    await message.answer("📞 Iltimos, telefon raqamingizni yuboring:", reply_markup= kb.uz_phone_number_kb)
-    
-    await state.set_state(UzUserReg.phone)
-
-
-
-@router.message(UzUserReg.phone)
-async def process_contact(message: Message, state: FSMContext):
-    if not message.contact:
-        await message.answer("❗ Iltimos, tugmani bosib raqamni yuboring.")
-        return
-
-    phone_number = message.contact.phone_number
-
-    await state.update_data(phone=phone_number)
-
-    await message.answer(f"✅ Raqam qabul qilindi: `{phone_number}`", parse_mode="Markdown", reply_markup= kb.ReplyKeyboardRemove())
+    await message.answer(f"✅ ID qabul qilindi: {platform_id}", parse_mode="Markdown")
 
     await message.answer(
         "💸 To‘lov miqdorini kiriting:\n\n"
-        "🔹 *Min.*: 30 000 so'm\n"
-        "🔹 *Max.*: 30 000 000 so'm\n\n"
-        "🔸 Misol: `156000` (faqat raqam, bo'shliqsiz)",
+        "🔹 *Min.: 30 000 so'm*\n"
+        "🔹 *Max.: 30 000 000 so'm*\n\n"
+        "🔸 Misol: 156000 (faqat raqam, bo'shliqsiz)",
         parse_mode="Markdown"
     )
     
@@ -101,9 +106,18 @@ async def process_contact(message: Message, state: FSMContext):
 async def process_amount(message: Message, state: FSMContext):
     raw_text = message.text.replace(" ", "").strip()
 
+    data = await state.get_data()
+    tg_id = message.from_user.id
+    phone = str(data.get("phone", "Не указана"))
+
+    await get_or_create_user(tg_id=tg_id, phone=phone)
+
+
     if not raw_text.isdigit():
         await message.answer("❌ Faqat raqamlardan foydalaning. Misol: `156000`", parse_mode="Markdown")
         return
+
+    await get_or_create_user(tg_id, phone=phone)
 
     amount = int(raw_text)
     if not (30_000 <= amount <= 30_000_000):
@@ -131,15 +145,15 @@ async def show_summary(message: Message, state: FSMContext):
 
     full_text = (
         f"♻️ *So‘rov ID: {payment_number}*\n"
-        f"💳 *Sizning kartangiz*: {card}\n"
-        f"🆔 *Sizning 1X ID*: {x_id}\n"
-        f"💸 *Miqdor*: `{amount}` сум\n\n"
+        f"💳 *Sizning kartangiz: {card}*\n"
+        f"🆔 *Sizning 1X ID: {x_id}*\n"
+        f"💸 *Miqdor: {amount} сум*\n\n"
         )
     
     if data['type'] == 'deposit':
         full_text += (
         f"❗️ *Quyidagi kartaga pul yuboring* 👇\n"
-        f"~~~~ `9860180110103520` ~~~~\n\n"
+        f"~~~~ `9860180110103520` ~~~~\n"
         )
         full_text += "\n\n⌛️ *Holat*: To‘lov kutilmoqda..."
         keyboard = kb.uz_payment_kb
@@ -191,28 +205,34 @@ async def confirm_code(message: Message, state: FSMContext):
     await state.set_state(UzUserReg.summary)
     await show_summary(message, state)
 
+
 @router.callback_query(F.data == "uz_withdraw_done")
 async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
-
+    await callback.message.delete()  
     data = await state.get_data()
-    card = data.get("card", "Ko‘rsatilmagan")
-    x_id = data.get("x_id", "Ko‘rsatilmagan")
-    amount = data.get("amount", "Ko‘rsatilmagan")
-    phone = data.get("phone", "Ko‘rsatilmagan")
+    card = data.get("card", "Не указана")
+    x_id = data.get("x_id", "Не указан")
+    amount = data.get("amount", "Не указана")
+    phone = str(data.get("phone", "Не указана"))
     user_id = data.get("tg_id")
     confirmation_code = data.get('confirm_code')
-    
+    type = data.get("type", "Не указана")
+
+    user = await get_or_create_user(user_id, phone=phone)
+    await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
+      
     payment_number = random.randint(1000000000, 9999999999)
     masked_card = f"{card}"
 
+    
     await callback.message.answer(
-        f"✅ So‘rov qabul qilindi\n\n"
-        f"♻️ To‘lov ID:  {payment_number}\n"
-        f"💳 Karta: `{masked_card}`\n"
-        f"🆔 1X ID: `{x_id}`\n"
-        f"✅ Tasdiqlash kodi: `{confirmation_code}`\n"
-        f"💵 Summasi: `{amount}` so‘m\n\n"
-        f"⌛️ Holat: Operator tomonidan tekshirilmoqda...",
+        f"✅ *So‘rov qabul qilindi*\n\n"
+        f"♻️ *To‘lov ID:  {payment_number}*\n"
+        f"💳 *Karta: {masked_card}*\n"
+        f"🆔 *1X ID: {x_id}*\n"
+        f"✅ *Tasdiqlash kodi: `{confirmation_code}`*\n"
+        f"💵 *Summasi: {amount} so‘m*\n\n"
+        f"⌛️ *Holat:* Operator tomonidan tekshirilmoqda...",
         reply_markup=kb.ReplyKeyboardRemove(), parse_mode="Markdown"
     )
 
@@ -234,20 +254,27 @@ async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "uz_payment_done")
 async def confirm_payment(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()       
     data = await state.get_data()
     card = data.get("card", "Не указана")
     x_id = data.get("x_id", "Не указан")
     amount = data.get("amount", "Не указана")
-    phone = data.get("phone", "Не указана")
+    phone = str(data.get("phone", "Не указана"))
     user_id = data.get("tg_id")
+    confirmation_code = data.get('confirm_code', "Не указана")
+    type = data.get("type", "Не указана")
 
+    user = await get_or_create_user(user_id, phone=phone)
+    await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
+      
     payment_number = random.randint(1000000000, 9999999999)
-    
+
 
     await callback.message.answer(
-        f"♻️ To'lov ID: {payment_number}\n"
-        f"💳 Karta: `{card}`\n"
-        f"⌛️ Holat: Operator tekshiruvi kutilmoqda...",
+        f"♻️ *To'lov ID: {payment_number}*\n"
+        f"💳 *Karta: {card}*\n"
+        f"💵 *Summasi: {amount} so‘m*\n\n"
+        f"⌛️ *Holat:* Operator tekshiruvi kutilmoqda...",
         reply_markup=kb.uz_support, parse_mode="Markdown"
     )
     
@@ -270,12 +297,6 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("confirm_"))
 async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
 
-    # try:
-    #     payment_number = callback.data.split("_")[1]
-    #     user_id = callback.from_user.id
-    #     if not user_id:
-    #         await callback.answer("❌ Foydalanuvchi ID topilmadi", show_alert=True)
-    #         return
     try:
         _, payment_number, user_id = callback.data.split('_')
         try:
@@ -290,7 +311,11 @@ async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
             )
             
             await callback.answer("To'lov tasdiqlandi!", show_alert=True)
-                     
+            
+            user = await User.get(tg_id=user_id)
+            tx = await Transaction.filter(user=user).order_by('-created_at').first()
+            tx.status = "Оплачено"
+            await tx.save()
 
         except TelegramBadRequest as e:
             if "chat not found" in str(e):
