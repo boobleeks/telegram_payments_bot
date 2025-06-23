@@ -2,20 +2,27 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Command
 from handlers.states import RuUserReg
-from config import SUPPORT_GROUP_ID
 from aiogram.fsm.context import FSMContext
+from config import SUPPORT_GROUP_ID
+from aiogram.exceptions import TelegramBadRequest
+
+#KEYBORDS
 from keyboards import ru_keyboards as kb
 
-from database.crud import get_or_create_user, create_transaction
 
+#DATABASE
+from database.crud import get_or_create_user, create_transaction
 from database.models import User
 from database.models import Transaction
 
-
+#UTILS
 import re
 import random
 
-from aiogram.exceptions import TelegramBadRequest
+#CLIENT
+from clients.api_client import AsyncCashdeskBotClient
+
+
 
 router = Router()
 
@@ -90,6 +97,17 @@ async def process_x_id(message: Message, state: FSMContext):
     if not platform_id.isdigit() or not (7 <= len(platform_id) <= 12):
         await message.answer("❌ Пожалуйста, введите ID только цифрами (от 7 до 12 символов)")
         return
+    
+    try:
+        async with AsyncCashdeskBotClient() as client:
+            if not await client.player_exists(platform_id):
+                await message.answer(f"❌ ID {platform_id} не найден, попробуйте снова")
+                return
+                    
+    except Exception:
+        await message.answer("⚠️ Ошибка проверки. Попробуйте позже")
+        return
+
 
     await state.update_data(x_id=platform_id)
 

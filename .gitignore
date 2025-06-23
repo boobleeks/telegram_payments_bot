@@ -8,3 +8,8 @@ bot.db-shm
 bot.db-wal
 
 config.py
+
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc

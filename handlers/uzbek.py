@@ -1,18 +1,24 @@
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
-from keyboards import uz_keyboards as kb
 from handlers.states import UzUserReg
-import re
-import random
 from aiogram.exceptions import TelegramBadRequest
 from config import SUPPORT_GROUP_ID
 
-from database.crud import get_or_create_user, create_transaction
+#KEYBORDS
+from keyboards import uz_keyboards as kb
 
+#DATABASE
+from database.crud import get_or_create_user, create_transaction
 from database.models import User
 from database.models import Transaction
 
+#UTILS
+import re
+import random
+
+#CLIENT
+from clients.api_client import AsyncCashdeskBotClient
 
 router = Router()
 #### Uzbek version
@@ -85,7 +91,16 @@ async def process_x_id(message: Message, state: FSMContext):
     if not platform_id.isdigit() or not (7 <= len(platform_id) <= 12):
         await message.answer("❌ Iltimos, faqat 7 dan 12 gacha raqamlardan iborat ID kiriting.")
         return
-
+    
+    try:
+        async with AsyncCashdeskBotClient() as client:
+            if not await client.player_exists(platform_id):
+                await message.answer(f"❌ ID {platform_id}  mavjud emas, qayta tekshirib to'gri kiriting")
+                return
+    except Exception:
+        await message.answer("⚠️ Tekshirish xatosi. Keyinroq harakat qilib ko'ring")
+        return
+    
     await state.update_data(x_id=platform_id)
 
     await message.answer(f"✅ ID qabul qilindi: {platform_id}", parse_mode="Markdown")
