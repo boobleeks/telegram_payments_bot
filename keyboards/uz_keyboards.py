@@ -26,7 +26,7 @@ uz_payment_kb = InlineKeyboardMarkup(inline_keyboard=[
 
 uz_withdraw_kb = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="✅ Hammasi to'gri", callback_data="uz_withdraw_done")],
-    [InlineKeyboardButton(text="🔙 Bosh menu", callback_data="russian")]
+    [InlineKeyboardButton(text="🔙 Bosh menu", callback_data="uzbek")]
 ])
 
 
@@ -39,5 +39,6 @@ def get_confirmation_kb(payment_number: int, user_id: int):
     return builder.as_markup()
 
 uz_support = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="💬 Yordam", url='https://t.me/NU220897')]
+    [InlineKeyboardButton(text="💬 Yordam", url='https://t.me/NU220897')],
+    [InlineKeyboardButton(text="🔙 Bosh menu", callback_data="uzbek")]
 ])

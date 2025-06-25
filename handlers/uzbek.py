@@ -123,7 +123,7 @@ async def process_x_id(message: Message, state: FSMContext):
 
 
     await message.answer(
-        "💸 To‘lov miqdorini kiriting:\n\n"
+        "💸 To‘lov summasini kiriting:\n\n"
         "🔹 *Min.: 30 000 so'm*\n"
         "🔹 *Max.: 30 000 000 so'm*\n\n"
         "🔸 Misol: 156000 (faqat raqam, bo'shliqsiz)",
@@ -157,11 +157,11 @@ async def process_amount(message: Message, state: FSMContext):
         return
 
     total_with_fee = round(amount + random.randint(10, 99))
+    await state.update_data(actual_amount=amount)
     await state.update_data(amount=total_with_fee)
 
-    # await message.answer(f"✅ Miqdor qabul qilindi: `{amount}` so'm", parse_mode="Markdown")
-
     await message.answer(f"✅ Miqdor qabul qilindi")
+
 
     await message.answer(
         "💳 Endi karta raqamingizni yuboring (faqat 16 raqam):\n\nMisol:\n`1234 5678 9012 3456`\nYoki\n`1234567890123456`",
@@ -172,23 +172,21 @@ async def process_amount(message: Message, state: FSMContext):
 
 async def show_summary(message: Message, state: FSMContext):
     data = await state.get_data()
-    # payment_number = random.randint(1000000000, 9999999999)
-
     x_id = data.get("x_id", "Не указан")
     amount = data.get("amount", "Не указана")
     card = data.get("card", "Не указана" )
     name = str(data.get("name", "Не указана"))
-
+    actual_amount = data.get("actual_amount", "Не указана")
     full_text = (
-        # f"♻️ *So‘rov ID: {payment_number}*\n"
         f"🙋 *{name}\n*"
         f"💳 *Sizning kartangiz: {card}*\n"
         f"🆔 *Sizning 1X ID: {x_id}*\n"
-        f"💸 *Miqdor: {amount} сум*\n\n"
         )
     
     if data['type'] == 'deposit':
         full_text += (
+        f"❌️ *Summa:* ~{actual_amount}~ *сум*\n"
+        f"💸 *Summa: {amount} сум*\n\n"
         f"❗️ *Quyidagi kartaga pul yuboring* 👇\n"
         f"~~~~ `9860180110103520` ~~~~\n"
         )
@@ -257,8 +255,7 @@ async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
     name = str(data.get("name", "Не указана"))
     user = await get_or_create_user(user_id, phone=phone)
     tx_check = await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
-      
-    # payment_number = random.randint(1000000000, 9999999999)
+    
     masked_card = f"{card}"
 
     
@@ -269,21 +266,20 @@ async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
         f"💳 *Karta: {masked_card}*\n"
         f"🆔 *1X ID: {x_id}*\n"
         f"✅ *Tasdiqlash kodi: `{confirmation_code}`*\n"
-        f"💵 *Summasi: {amount} so‘m*\n\n"
         f"⌛️ *Holat:* Operator tomonidan tekshirilmoqda...",
-        reply_markup=kb.ReplyKeyboardRemove(), parse_mode="Markdown"
+        reply_markup=kb.uz_support, parse_mode="Markdown"
     )
 
     await callback.bot.send_message(
         chat_id=SUPPORT_GROUP_ID,
         text=f"🆕 Yangi yechib olish!\n\n"
-             f"🔰 ID: {tx_check.id}\n\n"
+             f"🔰 ID: {tx_check.id}\n"
              f"🙋 *{name}\n*"
              f"💳 Karta: `{masked_card}`\n"
              f"🆔 1X ID: `{x_id}`\n"
              f"✅ Tasdiqlash kodi: `{confirmation_code}`\n"
              f"💵 Summasi: `{amount}` so‘m\n"
-             f"👤 Foydalanuvchi: {phone} / {user_id}",
+             f"👤 Foydalanuvchi: +{phone}",
         parse_mode="Markdown",
         reply_markup=kb.get_confirmation_kb(tx_check.id, user_id)
     )
@@ -306,15 +302,13 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
 
     user = await get_or_create_user(user_id, phone=phone)
     tx_check = await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
-      
-    # payment_number = random.randint(1000000000, 9999999999)
-
 
     await callback.message.answer(
+        f"✅ *Arizangiz qabul qilindi*\n\n"
         f"♻️ *To'lov ID: {tx_check.id}*\n"
         f"🙋 *{name}\n*"
         f"💳 *Karta: {card}*\n"
-        f"💵 *Summasi: {amount} so‘m*\n\n"
+        f"💵 *Summasi: {amount} so'm*\n\n"
         f"⌛️ *Holat:* Operator tekshiruvi kutilmoqda...",
         reply_markup=kb.uz_support, parse_mode="Markdown"
     )
@@ -328,7 +322,7 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
              f"💳 Karta: `{card}`\n"
              f"🆔 1X ID: `{x_id}`\n"
              f"💵 Summa: `{amount}` so'm\n"
-             f"👤 Foydalanuvchi: {phone} / {user_id}",
+             f"👤 Foydalanuvchi: {phone}",
         parse_mode="Markdown",
         reply_markup=kb.get_confirmation_kb(tx_check.id, user_id)
     )
@@ -343,7 +337,7 @@ async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
         _, payment_number, user_id = callback.data.split('_')
         try:
             await callback.bot.send_message(
-                chat_id= int(user_id),  # Используем сохраненный user_id
+                chat_id= int(user_id), 
                 text=f"✅ Sizning arizangiz #{payment_number} tasdiqlandi, balansingizni tekshiring!", reply_markup=kb.uz_support
             )
             
@@ -359,10 +353,6 @@ async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
             tx.status = "Оплачено"
             await tx.save()
 
-            # tx = await Transaction.get_or_none(id=int(payment_number))
-            # tx.status = "Оплачено"
-            # await tx.save()
-
         except TelegramBadRequest as e:
             if "chat not found" in str(e):
                 await callback.answer("❌ Foydalanuvchi botni bloklagan", show_alert=True)
@@ -377,9 +367,7 @@ async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "go_home")
 async def back_to_main(callback: CallbackQuery):
-    try:
-        await callback.message.delete()
-        
+    try:        
 
         await callback.message.answer(
             text='Выберите язык / Tilni tanlang 👇',

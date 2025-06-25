@@ -38,5 +38,6 @@ def ru_get_confirmation_kb(payment_number: int, user_id: int):
     return builder.as_markup()
 
 ru_support = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="💬 Служба поддержки", url='https://t.me/NU220897')]
+    [InlineKeyboardButton(text="💬 Служба поддержки", url='https://t.me/NU220897')],
+    [InlineKeyboardButton(text="🔙 Главное Меню", callback_data="russian")]
 ])

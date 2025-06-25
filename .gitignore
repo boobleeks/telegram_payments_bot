@@ -15,3 +15,6 @@ __pycache__/
 *.pyc
 
 credentials.json
+
+
+test_api_client.py
