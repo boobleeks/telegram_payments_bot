@@ -64,8 +64,9 @@ class AsyncCashdeskBotClient:
                 text = await response.text()
                 response.raise_for_status()
                 data = json.loads(text)
+
                 if str(data['UserId']) == str(user_id):
-                    return True
+                    return data
                 else:
                     return False
 
@@ -73,17 +74,61 @@ class AsyncCashdeskBotClient:
             if e.status == 404:
                 return False
             raise
+    
+
+    async def deposit(self, user_id: str, amount: float, language: str = "ru") -> dict:
+
+        payload = {
+        "cashdeskId": int(self.cashdeskid),
+        "summa": float(amount),
+        "confirm": self._generate_confirm
+    }
+        ### default язык ru
+
+        url = f"{self.base_url}Deposit/{user_id}/Add"
+        headers = {"sign": self._generate_signature(user_id=user_id), "Content-Type": "application/json"}
+
+        async with self.session.post(url, json=payload, headers=headers) as response:
+            return await response.text()
+
+
+
+    async def withdraw(self, user_id: str, code: str, language: str = "ru"):
+
+        if not self.session:
+            raise RuntimeError("Session not initialized. Use async with.")
+            
+        payload = {
+            "cashdeskId": int(self.cashdeskid),
+            "lng": language,
+            "code": code,
+            "confirm": self._generate_confirm(user_id)
+        }
+
+        url = f"{self.base_url}Deposit/{user_id}/Payout"
+        headers = {
+            "sign": self._generate_signature(user_id=user_id, lng=language, code=code)
+        }
+
+        async with self.session.post(url, json=payload, headers=headers) as response:
+            response.raise_for_status()
+            return await response.json()
+
+
 
 
 
 # async def main():
 #     async with AsyncCashdeskBotClient() as client:
 #         try:
-#             exists = await client.player_exists(661875169)
+#             exists = await client.player_exists(1259446209)
 #             print(f"Игрок существует: {exists}")
             
 #             # balance = await client.get_balance()
 #             # print(f"Баланс кассы: {balance}")
+
+#             deposit = await client.deposit(user_id='1259446209', amount=30000.00)
+#             print(f"Успешно! {deposit}")
 #         except Exception as e:
 #             print(f"Ошибка: {e}")
 

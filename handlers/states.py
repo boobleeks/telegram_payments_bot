@@ -10,6 +10,7 @@ class UzUserReg(StatesGroup):
     amount = State()
     confirm_code = State()
     summary = State()
+    name = State()
 
 class RuUserReg(StatesGroup):
     type = State()
@@ -21,3 +22,4 @@ class RuUserReg(StatesGroup):
     amount = State()
     confirm_code = State()
     summary = State()
+    name = State()

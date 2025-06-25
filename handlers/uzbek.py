@@ -3,7 +3,6 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from handlers.states import UzUserReg
 from aiogram.exceptions import TelegramBadRequest
-from config import SUPPORT_GROUP_ID
 
 #KEYBORDS
 from keyboards import uz_keyboards as kb
@@ -16,11 +15,18 @@ from database.models import Transaction
 #UTILS
 import re
 import random
+import os
+from dotenv import load_dotenv
 
 #CLIENT
 from clients.api_client import AsyncCashdeskBotClient
 
+
+load_dotenv()
 router = Router()
+
+SUPPORT_GROUP_ID = os.getenv("SUPPORT_GROUP_ID")
+
 #### Uzbek version
 
 @router.callback_query(F.data == 'uzbek')
@@ -103,7 +109,18 @@ async def process_x_id(message: Message, state: FSMContext):
     
     await state.update_data(x_id=platform_id)
 
-    await message.answer(f"✅ ID qabul qilindi: {platform_id}", parse_mode="Markdown")
+
+    try:
+        async with AsyncCashdeskBotClient() as client:
+                name = await client.player_exists(platform_id)
+                await state.update_data(name=name['Name'])
+
+        await message.answer(f"🔹 {name['Name']}   \n✅ ID qabul qilindi: {platform_id}", parse_mode="Markdown")
+
+    except:
+        await message.answer("⚠️ Tekshirish xatosi. Keyinroq harakat qilib ko'ring")
+        return
+
 
     await message.answer(
         "💸 To‘lov miqdorini kiriting:\n\n"
@@ -139,9 +156,12 @@ async def process_amount(message: Message, state: FSMContext):
         await message.answer("❌ Miqdor 30 000 so'mdan kam yoki 30 000 000 so'mdan katta bo‘lishi mumkin emas.")
         return
 
-    await state.update_data(amount=amount)
+    total_with_fee = round(amount + random.randint(10, 99))
+    await state.update_data(amount=total_with_fee)
 
-    await message.answer(f"✅ Miqdor qabul qilindi: `{amount}` so'm", parse_mode="Markdown")
+    # await message.answer(f"✅ Miqdor qabul qilindi: `{amount}` so'm", parse_mode="Markdown")
+
+    await message.answer(f"✅ Miqdor qabul qilindi")
 
     await message.answer(
         "💳 Endi karta raqamingizni yuboring (faqat 16 raqam):\n\nMisol:\n`1234 5678 9012 3456`\nYoki\n`1234567890123456`",
@@ -152,14 +172,16 @@ async def process_amount(message: Message, state: FSMContext):
 
 async def show_summary(message: Message, state: FSMContext):
     data = await state.get_data()
-    payment_number = random.randint(1000000000, 9999999999)
+    # payment_number = random.randint(1000000000, 9999999999)
 
     x_id = data.get("x_id", "Не указан")
     amount = data.get("amount", "Не указана")
     card = data.get("card", "Не указана" )
+    name = str(data.get("name", "Не указана"))
 
     full_text = (
-        f"♻️ *So‘rov ID: {payment_number}*\n"
+        # f"♻️ *So‘rov ID: {payment_number}*\n"
+        f"🙋 *{name}\n*"
         f"💳 *Sizning kartangiz: {card}*\n"
         f"🆔 *Sizning 1X ID: {x_id}*\n"
         f"💸 *Miqdor: {amount} сум*\n\n"
@@ -232,17 +254,18 @@ async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
     user_id = data.get("tg_id")
     confirmation_code = data.get('confirm_code')
     type = data.get("type", "Не указана")
-
+    name = str(data.get("name", "Не указана"))
     user = await get_or_create_user(user_id, phone=phone)
-    await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
+    tx_check = await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
       
-    payment_number = random.randint(1000000000, 9999999999)
+    # payment_number = random.randint(1000000000, 9999999999)
     masked_card = f"{card}"
 
     
     await callback.message.answer(
         f"✅ *So‘rov qabul qilindi*\n\n"
-        f"♻️ *To‘lov ID:  {payment_number}*\n"
+        f"♻️ *To‘lov ID:  {tx_check.id}*\n"
+        f"🙋 *{name}\n*"
         f"💳 *Karta: {masked_card}*\n"
         f"🆔 *1X ID: {x_id}*\n"
         f"✅ *Tasdiqlash kodi: `{confirmation_code}`*\n"
@@ -254,14 +277,15 @@ async def confirm_withdraw(callback: CallbackQuery, state: FSMContext):
     await callback.bot.send_message(
         chat_id=SUPPORT_GROUP_ID,
         text=f"🆕 Yangi yechib olish!\n\n"
+             f"🔰 ID: {tx_check.id}\n\n"
+             f"🙋 *{name}\n*"
              f"💳 Karta: `{masked_card}`\n"
              f"🆔 1X ID: `{x_id}`\n"
              f"✅ Tasdiqlash kodi: `{confirmation_code}`\n"
              f"💵 Summasi: `{amount}` so‘m\n"
-             f"🔰 ID: {payment_number}\n\n"
              f"👤 Foydalanuvchi: {phone} / {user_id}",
         parse_mode="Markdown",
-        reply_markup=kb.get_confirmation_kb(payment_number, user_id)
+        reply_markup=kb.get_confirmation_kb(tx_check.id, user_id)
     )
     await callback.answer()
 
@@ -275,18 +299,20 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
     x_id = data.get("x_id", "Не указан")
     amount = data.get("amount", "Не указана")
     phone = str(data.get("phone", "Не указана"))
+    name = str(data.get("name", "Не указана"))
     user_id = data.get("tg_id")
     confirmation_code = data.get('confirm_code', "Не указана")
     type = data.get("type", "Не указана")
 
     user = await get_or_create_user(user_id, phone=phone)
-    await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
+    tx_check = await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
       
-    payment_number = random.randint(1000000000, 9999999999)
+    # payment_number = random.randint(1000000000, 9999999999)
 
 
     await callback.message.answer(
-        f"♻️ *To'lov ID: {payment_number}*\n"
+        f"♻️ *To'lov ID: {tx_check.id}*\n"
+        f"🙋 *{name}\n*"
         f"💳 *Karta: {card}*\n"
         f"💵 *Summasi: {amount} so‘m*\n\n"
         f"⌛️ *Holat:* Operator tekshiruvi kutilmoqda...",
@@ -297,13 +323,14 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
     await callback.bot.send_message(
         chat_id=SUPPORT_GROUP_ID,
         text=f"🆕 Yangi to'lov!\n\n"
+             f"🔰 ID: {tx_check.id}\n"
+             f"🙋 *{name}\n*"
              f"💳 Karta: `{card}`\n"
              f"🆔 1X ID: `{x_id}`\n"
              f"💵 Summa: `{amount}` so'm\n"
-             f"🔰 ID: {payment_number}\n\n"
              f"👤 Foydalanuvchi: {phone} / {user_id}",
         parse_mode="Markdown",
-        reply_markup=kb.get_confirmation_kb(payment_number, user_id)
+        reply_markup=kb.get_confirmation_kb(tx_check.id, user_id)
     )
     
     await callback.answer()
@@ -317,7 +344,7 @@ async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
         try:
             await callback.bot.send_message(
                 chat_id= int(user_id),  # Используем сохраненный user_id
-                text=f"✅ Sizning arizangiz #{payment_number} tasdiqlandi, balansingizni tekshiring!"
+                text=f"✅ Sizning arizangiz #{payment_number} tasdiqlandi, balansingizni tekshiring!", reply_markup=kb.uz_support
             )
             
             await callback.message.edit_text(
@@ -331,6 +358,10 @@ async def admin_confirm_payment(callback: CallbackQuery, state: FSMContext):
             tx = await Transaction.filter(user=user).order_by('-created_at').first()
             tx.status = "Оплачено"
             await tx.save()
+
+            # tx = await Transaction.get_or_none(id=int(payment_number))
+            # tx.status = "Оплачено"
+            # await tx.save()
 
         except TelegramBadRequest as e:
             if "chat not found" in str(e):

@@ -13,3 +13,5 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyc
+
+credentials.json
