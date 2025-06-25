@@ -1,9 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart, Command
 from handlers.states import RuUserReg
 from aiogram.fsm.context import FSMContext
-from config import SUPPORT_GROUP_ID
 from aiogram.exceptions import TelegramBadRequest
 
 #KEYBORDS
