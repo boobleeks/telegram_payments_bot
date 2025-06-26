@@ -148,18 +148,16 @@ async def process_x_id(message: Message, state: FSMContext):
 
     if data["type"] == "deposit":
         await message.answer(
-            "💸 Hisobni to‘ldirish summasini kiriting:\n\n"
             "🔹 *Eng kam: 30 000 so‘m*\n"
             "🔹 *Eng ko‘p: 30 000 000 so‘m*\n\n"
-            "🔸 Misol: 156000 (faqat raqamlar, bo‘shliqsiz)",
+            "💸 To‘ldirish summasini kiriting 👇",
             parse_mode="Markdown"
         )
 
         await state.set_state(UzUserReg.amount)
     else:
-        await message.answer(
-        "💳 Endi karta raqamini kiriting (16 ta raqam):\n\nMisol:\n`1234 5678 9012 3456`\nYoki\n`1234567890123456`",
-        parse_mode="Markdown"
+        await message.answer_photo(
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Endi karta raqamini kiriting (16 ta raqam):\n\nMisol:\n`1234 5678 9012 3456`\nYoki\n`1234567890123456`",
     )
         await state.set_state(UzUserReg.card_number)
 
@@ -194,9 +192,8 @@ async def process_amount(message: Message, state: FSMContext):
     await message.answer(f"✅ Miqdor qabul qilindi")
 
 
-    await message.answer(
-        "💳 Endi karta raqamingizni yuboring (faqat 16 raqam):\n\nMisol:\n`1234 5678 9012 3456`\nYoki\n`1234567890123456`",
-        parse_mode="Markdown"
+    await message.answer_photo(
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Endi karta raqamini kiriting (16 ta raqam):\n\nMisol:\n`1234 5678 9012 3456`\nYoki\n`1234567890123456`",
     )
     await state.set_state(UzUserReg.card_number)
 
@@ -214,29 +211,29 @@ async def show_summary(message: Message, state: FSMContext):
     tx = await Transaction.filter(user=user).order_by('-created_at').first()
 
     full_text = (
-        f"🙋 *{name}\n*"
-        f"💳 *Sizning kartangiz: {card}*\n"
-        f"🆔 *Sizning 1X ID: {x_id}*\n"
+        f"🙋 <b>{name}\n</b>"
+        f"💳 <b>Karta: {card}</b>\n"
+        f"🆔 <b>1X ID: {x_id}</b>\n"
         )
     
     if data['type'] == 'deposit':
         full_text += (
-        f"\n❌️ *Summa:* ~{actual_amount}~ *сум*\n"
-        f"💸 *Summa: {amount} сум*\n\n"
-        f"❗️ *Quyidagi kartaga pul yuboring* 👇\n"
-        f"~~~~ `9860180110103520` ~~~~\n"
+        f"\n❌️ <b>Summa:</b> <s>{actual_amount}</s> <b>сум</b>\n"
+        f"💸 <b>Summa: {amount} сум</b>\n\n"
+        f"❗️ <b>Quyidagi kartaga pul yuboring</b> 👇\n"
+        f"~~~~ <code>{os.getenv('CARD')}</code> ~~~~\n"
         )
-        full_text += "\n\n⌛️ *Holat*: To‘lov kutilmoqda..."
+        full_text += "\n\n⌛️ <b>Holat</b>: To‘lov kutilmoqda..."
         keyboard = kb.uz_payment_kb
 
     if data['type'] == 'withdraw':
         full_text += f"\n✅ Tasdiqlash kodi: {data['confirm_code']}"
-        full_text += "\n\n✅ *Holat*: Pul mablag‘i karta hisobingizga 5 daqiqa ichida tushadi, javobni kuting!"
+        full_text += "\n\n✅ <b>Holat</b>: Pul mablag‘i karta hisobingizga 5 daqiqa ichida tushadi, javobni kuting!"
         keyboard = kb.uz_support
         await handle_withdraw_confirm(state, message.bot)
         
     await message.answer(full_text,
-        parse_mode = "Markdown",
+        parse_mode = "HTML",
         reply_markup = keyboard
     )
 
@@ -259,7 +256,7 @@ async def process_card_number(message: Message, state: FSMContext):
 
     if data['type'] == 'withdraw':
         await state.set_state(UzUserReg.confirm_code)
-        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Iltimos, tasdiqlash kodini kiriting")
+        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Iltimos, tasdiqlash kodini kiriting 👇")
     else:
         await state.set_state(UzUserReg.summary)
         await show_summary(message, state)

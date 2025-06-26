@@ -29,6 +29,10 @@ router = Router()
 SUPPORT_GROUP_ID = os.getenv("SUPPORT_GROUP_ID")
 
 #### Russian Version
+def escape_md(text: str) -> str:
+    text = str(text)
+    escape_chars = r"_*[]()~`>#+-=|{}.!"
+    return ''.join(f"\\{c}" if c in escape_chars else c for c in text)
 
 @router.callback_query(F.data == 'russian')
 async def russian_answer(callback: CallbackQuery):
@@ -149,17 +153,16 @@ async def process_x_id(message: Message, state: FSMContext):
 
     if data["type"] == "deposit":
         await message.answer(
-            "💸 Введите сумму пополнения:\n\n"
             "🔹 *Мин.: 30 000 сум*\n"
             "🔹 *Макс.: 30 000 000 сум*\n\n"
-            "🔸 Пример: `156000` (только цифры, без пробелов)",
+            "💸 Введите сумму пополнения 👇",
             parse_mode="Markdown"
         )
 
         await state.set_state(RuUserReg.amount)
     else:
-        await message.answer(
-        "💳 Теперь введите номер карты (16 цифр):\n\nПример:\n`1234 5678 9012 3456`\nИли\n`1234567890123456`",
+        await message.answer_photo(
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):\n\nПример:\n`1234 5678 9012 3456`\nИли\n`1234567890123456`",
         parse_mode="Markdown"
     )
         await state.set_state(RuUserReg.card_number)
@@ -191,8 +194,8 @@ async def process_amount(message: Message, state: FSMContext):
 
     await message.answer(f"✅ Сумма принята!")
 
-    await message.answer(
-        "💳 Теперь введите номер карты (16 цифр):\n\nПример:\n`1234 5678 9012 3456`\nИли\n`1234567890123456`",
+    await message.answer_photo(
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):\n\nПример:\n`1234 5678 9012 3456`\nИли\n`1234567890123456`",
         parse_mode="Markdown"
     )
     await state.set_state(RuUserReg.card_number)
@@ -211,29 +214,29 @@ async def show_summary(message: Message, state: FSMContext):
     user = await User.get(tg_id=user_id)
     tx = await Transaction.filter(user=user).order_by('-created_at').first()
     full_text = (
-        f"🙋 *{name}\n*"
-        f"💳 *Ваша карта: {card}*\n"
-        f"🆔 *Ваш 1X ID: {x_id}*\n"
+        f"🙋 <b>{name}\n</b>"
+        f"💳 <b>Ваша карта: {card}</b>\n"
+        f"🆔 <b>Ваш 1X ID: {x_id}</b>\n"
         )
     
     if data['type'] == 'deposit':
         full_text += (
-        f"\n❌️ *Сумма:* ~{actual_amount}~ *сум*\n"
-        f"💸 *Сумма: {amount} сум*\n\n"
-        f"❗️ *Переведите на карту* 👇\n"
-        f"~~~~ `9860180110103520` ~~~~\n"
+        f"\n❌️ <b>Сумма:</b> <s>{actual_amount}</s> <b>сум</b>\n"
+        f"✅ <b>Сумма: {amount} сум</b>\n\n"
+        f"❗️ <b>Переведите на карту</b> 👇\n"
+        f"~~~~ <code>{os.getenv('CARD')}</code> ~~~~\n"
         )
-        full_text += "\n\n⌛️ *Статус*: Ожидает оплаты..."
+        full_text += "\n\n⌛️ <b>Статус</b>: Ожидает оплаты..."
         keyboard = kb.ru_payment_kb
 
     if data['type'] == 'withdraw':
         full_text += f"\n✅ Код подтверждения: {data['confirm_code']}"
-        full_text += "\n\n✅ *Статус*: Cумма поступит на карту в течении 5 минут, ожидайте ответа!"
+        full_text += "\n\n✅ <b>Статус</b>: Cумма поступит на карту в течении 5 минут, ожидайте ответа!"
         keyboard = kb.ru_support
         await handle_withdraw_confirm(state, message.bot)
 
     await message.answer(full_text,
-        parse_mode = "Markdown",
+        parse_mode = "HTML",
         reply_markup = keyboard
     )
 
@@ -256,7 +259,7 @@ async def process_card_number(message: Message, state: FSMContext):
 
     if data['type'] == 'withdraw':
         await state.set_state(RuUserReg.confirm_code)
-        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Введите код подтверждения вывода")
+        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Введите код подтверждения вывода 👇")
     else:
         await state.set_state(RuUserReg.summary)
         await show_summary(message, state)

@@ -21,9 +21,6 @@ else:
 router = Router()
 
 
-
-
-
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     user = message
