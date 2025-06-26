@@ -30,11 +30,11 @@ uz_withdraw_kb = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
-def get_confirmation_kb(payment_number: int, user_id: int):
+def get_confirmation_kb(payment_number: int, user_id: int, x_id: int, transaction_type: str, confirm_code: str = "None"):
     builder = InlineKeyboardBuilder()
     builder.button(
         text="✅ Tasdiqlash", 
-        callback_data=f"confirm_{payment_number}_{user_id}"
+        callback_data=f"confirm_{payment_number}_{user_id}_{x_id}_{transaction_type}_{confirm_code}"
     )
     return builder.as_markup()
 

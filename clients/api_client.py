@@ -54,7 +54,6 @@ class AsyncCashdeskBotClient:
             step2 = hashlib.md5(step2_str.encode()).hexdigest()
 
             signature = hashlib.sha256((step1+step2).encode()).hexdigest()
-            print(signature)
 
             return signature
         
@@ -65,7 +64,6 @@ class AsyncCashdeskBotClient:
             step2 = hashlib.md5(step2_str.encode()).hexdigest()
 
             signature = hashlib.sha256((step1+step2).encode()).hexdigest()
-            print(signature)
 
             return signature
 
@@ -162,8 +160,12 @@ class AsyncCashdeskBotClient:
 #             balance = await client.get_balance()
 #             print(f"Баланс кассы: {balance}")
 
-#             # deposit = await client.deposit(user_id='1259446209', amount=30000.00)
+#             # deposit = await client.deposit(user_id='1259446209', amount=30094.00)
 #             # print(f"Успешно! {deposit}")
+
+#             # withdraw = await client.withdraw(user_id='1259446209', code="df56")
+#             # print(f"Успешно! {withdraw}")
+
 #         except Exception as e:
 #             print(f"Ошибка: {e}")
 

@@ -29,11 +29,11 @@ ru_withdraw_kb = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
-def ru_get_confirmation_kb(payment_number: int, user_id: int):    
+def ru_get_confirmation_kb(payment_number: int, user_id: int, x_id: int, transaction_type: str, confirm_code: str = "None"):    
     builder = InlineKeyboardBuilder()
     builder.button(
         text="✅ Подтвердить", 
-        callback_data=f"ruconfirm_{payment_number}_{user_id}"
+        callback_data=f"ruconfirm_{payment_number}_{user_id}_{x_id}_{transaction_type}_{confirm_code}"
     )
     return builder.as_markup()
 
