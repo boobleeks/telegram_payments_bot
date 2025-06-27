@@ -162,7 +162,7 @@ async def process_x_id(message: Message, state: FSMContext):
         await state.set_state(RuUserReg.amount)
     else:
         await message.answer_photo(
-            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):\n\nПример:\n`1234 5678 9012 3456`\nИли\n`1234567890123456`",
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):",
         parse_mode="Markdown"
     )
         await state.set_state(RuUserReg.card_number)
@@ -195,7 +195,7 @@ async def process_amount(message: Message, state: FSMContext):
     await message.answer(f"✅ Сумма принята!")
 
     await message.answer_photo(
-            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):\n\nПример:\n`1234 5678 9012 3456`\nИли\n`1234567890123456`",
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):",
         parse_mode="Markdown"
     )
     await state.set_state(RuUserReg.card_number)

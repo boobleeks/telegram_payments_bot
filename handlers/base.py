@@ -30,7 +30,7 @@ async def cmd_start(message: Message):
 
 @router.message(F.text == "/export")
 async def handle_export(message: types.Message):
-    if message.from_user.id not in admin_ids:
+    if str(message.from_user.id) not in admin_ids:
         return await message.answer("⛔ У вас нет доступа к этой команде.")
 
     await message.answer("⏳ Экспорт данных в Google Sheets начался...")
