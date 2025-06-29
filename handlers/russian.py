@@ -29,20 +29,22 @@ router = Router()
 SUPPORT_GROUP_ID = os.getenv("SUPPORT_GROUP_ID")
 
 #### Russian Version
-def escape_md(text: str) -> str:
-    text = str(text)
-    escape_chars = r"_*[]()~`>#+-=|{}.!"
-    return ''.join(f"\\{c}" if c in escape_chars else c for c in text)
-
-@router.callback_query(F.data == 'russian')
-async def russian_answer(callback: CallbackQuery):
-    await callback.message.delete()
-    await callback.answer('')
-    user = callback.from_user
-    await callback.message.answer_photo(
+async def process_russian(user: User, message: Message):
+    await message.delete()
+    await message.answer_photo(
         photo='https://i.ibb.co/hRN3HhFz/photo-2025-06-22-15-43-52.jpg', 
         caption=f'{user.first_name} добро пожаловать в Paybet! 🎉 \n\nПополняй и выводи со счёта 1x БЕСПЛАТНО!💸✨', 
         reply_markup = kb.ru_options)
+    
+@router.message(F.text == "🔙 Назад")
+async def back_to_uzbek(message: Message):
+    await process_russian(message.from_user, message)
+
+
+@router.callback_query(F.data == 'russian')
+async def russian_answer(callback: CallbackQuery):
+    await callback.answer('')
+    await process_russian(callback.from_user, callback.message)
 
 
 # Обработка вывода
@@ -66,7 +68,8 @@ async def russian_withdraw_answer(callback: CallbackQuery, state: FSMContext):
         await state.update_data(phone=user.phone_number)
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='Введите ваш ID ⬇️'
+        caption='Введите ваш ID ⬇️',
+        reply_markup = kb.ru_back
     )
         await state.set_state(RuUserReg.x_id)
 
@@ -91,7 +94,8 @@ async def russian_deposit_answer(callback: CallbackQuery, state: FSMContext):
         await state.update_data(phone=user.phone_number)
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='Введите ваш ID ⬇️'
+        caption='Введите ваш ID ⬇️',
+        reply_markup = kb.ru_back
     )
         await state.set_state(RuUserReg.x_id)
     
@@ -110,7 +114,8 @@ async def process_contact(message: Message, state: FSMContext):
 
     await message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='Введите ваш ID ⬇️'
+        caption='Введите ваш ID ⬇️',
+        reply_markup = kb.ru_back
     )
     await state.set_state(RuUserReg.x_id)
 

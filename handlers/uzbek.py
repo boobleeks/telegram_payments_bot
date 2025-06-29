@@ -29,15 +29,25 @@ SUPPORT_GROUP_ID = os.getenv("SUPPORT_GROUP_ID")
 
 #### Uzbek version
 
+
+async def process_uzbek(user: User, message: Message):
+    await message.delete()
+    await message.answer_photo(
+        photo='https://i.ibb.co/hRN3HhFz/photo-2025-06-22-15-43-52.jpg',
+        caption=f'{user.first_name} Paybet’ga xush kelibsiz! 🎉 \n\n1x hisobingizni BEPUL to‘ldiring va yeching! 💸✨',
+        reply_markup=kb.uz_options
+    )
+
+
+@router.message(F.text == "🔙 Ortga")
+async def back_to_uzbek(message: Message):
+    await process_uzbek(message.from_user, message)
+
+
 @router.callback_query(F.data == 'uzbek')
 async def uzbek_answer(callback: CallbackQuery):
-    await callback.message.delete()
     await callback.answer('')
-    user = callback.from_user
-    await callback.message.answer_photo(
-        photo='https://i.ibb.co/hRN3HhFz/photo-2025-06-22-15-43-52.jpg', 
-        caption=f'{user.first_name} Paybet’ga xush kelibsiz! 🎉 \n\n1x hisobingizni BEPUL to‘ldiring va yeching! 💸✨', 
-        reply_markup = kb.uz_options)
+    await process_uzbek(callback.from_user, callback.message)
 
 
 # Обработка вывода
@@ -61,7 +71,8 @@ async def uzbek_withdraw_answer(callback: CallbackQuery, state: FSMContext):
         await state.update_data(phone=user.phone_number)
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='ID raqamni kiriting ⬇️'
+        caption='ID raqamni kiriting ⬇️',
+        reply_markup = kb.uz_back
     )
         await state.set_state(UzUserReg.x_id)
 
@@ -87,7 +98,8 @@ async def uzbek_deposit_answer(callback: CallbackQuery, state: FSMContext):
         await state.update_data(phone=user.phone_number)
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='ID raqamni kiriting ⬇️'
+        caption='ID raqamni kiriting ⬇️',
+        reply_markup = kb.uz_back
     )
         await state.set_state(UzUserReg.x_id)
     
@@ -106,7 +118,8 @@ async def process_contact(message: Message, state: FSMContext):
 
     await message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
-        caption='ID raqamni kiriting ⬇️'
+        caption='ID raqamni kiriting ⬇️',
+        reply_markup = kb.uz_back
     )
     await state.set_state(UzUserReg.x_id)
 
@@ -393,7 +406,6 @@ async def confirm_payment(callback: CallbackQuery, state: FSMContext):
 
     user = await get_or_create_user(user_id, phone=phone)
     tx_check = await create_transaction(user, amount=amount, x_id = x_id,  tx_type=type, verification_code=confirmation_code, card_number=card)
-
     await callback.message.answer(
         f"✅ *Arizangiz qabul qilindi*\n\n"
         f"♻️ *To'lov ID: {tx_check.id}*\n"

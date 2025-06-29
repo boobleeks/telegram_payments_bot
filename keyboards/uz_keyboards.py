@@ -3,6 +3,14 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 
+
+uz_back = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="🔙 Ortga")],
+    ],
+    resize_keyboard=True  
+)
+
 uz_options = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="💰 Hisobni to‘ldirish", callback_data='uz_deposit')],
     [InlineKeyboardButton(text="📤 Pul yechish", callback_data='uz_withdraw')],

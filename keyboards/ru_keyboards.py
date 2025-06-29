@@ -3,6 +3,14 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 
+ru_back = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="🔙 Назад")],
+    ],
+    resize_keyboard=True  
+)
+
+
 ru_options = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="💰 Пополнить", callback_data='ru_deposit')],
     [InlineKeyboardButton(text="📤 Вывести", callback_data='ru_withdraw')],
