@@ -25,6 +25,10 @@ uz_phone_number_kb = ReplyKeyboardMarkup(
         one_time_keyboard=True
     )
 
+uz_inline_back = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="🔙 Ortga", callback_data="uzbek")]
+])
+
 
 uz_payment_kb = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="✅ To'ladim", callback_data="uz_payment_done")],

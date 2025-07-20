@@ -69,7 +69,7 @@ async def russian_withdraw_answer(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
         caption='Введите ваш ID ⬇️',
-        reply_markup = kb.ru_back
+        reply_markup = kb.ru_inline_back
     )
         await state.set_state(RuUserReg.x_id)
 
@@ -95,7 +95,7 @@ async def russian_deposit_answer(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
         caption='Введите ваш ID ⬇️',
-        reply_markup = kb.ru_back
+        reply_markup = kb.ru_inline_back
     )
         await state.set_state(RuUserReg.x_id)
     
@@ -115,7 +115,7 @@ async def process_contact(message: Message, state: FSMContext):
     await message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
         caption='Введите ваш ID ⬇️',
-        reply_markup = kb.ru_back
+        reply_markup = kb.ru_inline_back
     )
     await state.set_state(RuUserReg.x_id)
 
@@ -168,7 +168,7 @@ async def process_x_id(message: Message, state: FSMContext):
     else:
         await message.answer_photo(
             photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):",
-        parse_mode="Markdown"
+        parse_mode="Markdown", reply_markup = kb.ru_inline_back
     )
         await state.set_state(RuUserReg.card_number)
 
@@ -201,7 +201,7 @@ async def process_amount(message: Message, state: FSMContext):
 
     await message.answer_photo(
             photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Теперь введите номер карты (16 цифр):",
-        parse_mode="Markdown"
+        parse_mode="Markdown", reply_markup = kb.ru_inline_back
     )
     await state.set_state(RuUserReg.card_number)
 
@@ -264,7 +264,7 @@ async def process_card_number(message: Message, state: FSMContext):
 
     if data['type'] == 'withdraw':
         await state.set_state(RuUserReg.confirm_code)
-        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Введите код подтверждения вывода 👇")
+        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Введите код подтверждения вывода 👇", reply_markup = kb.ru_inline_back)
     else:
         await state.set_state(RuUserReg.summary)
         await show_summary(message, state)

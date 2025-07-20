@@ -72,7 +72,7 @@ async def uzbek_withdraw_answer(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
         caption='ID raqamni kiriting ⬇️',
-        reply_markup = kb.uz_back
+        reply_markup = kb.uz_inline_back
     )
         await state.set_state(UzUserReg.x_id)
 
@@ -99,7 +99,7 @@ async def uzbek_deposit_answer(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
         caption='ID raqamni kiriting ⬇️',
-        reply_markup = kb.uz_back
+        reply_markup = kb.uz_inline_back
     )
         await state.set_state(UzUserReg.x_id)
     
@@ -119,7 +119,7 @@ async def process_contact(message: Message, state: FSMContext):
     await message.answer_photo(
         photo='https://i.ibb.co/vCGYXGhj/photo-2025-06-20-12-45-23.jpg', 
         caption='ID raqamni kiriting ⬇️',
-        reply_markup = kb.uz_back
+        reply_markup = kb.uz_inline_back
     )
     await state.set_state(UzUserReg.x_id)
 
@@ -164,13 +164,14 @@ async def process_x_id(message: Message, state: FSMContext):
             "🔹 *Eng kam: 30 000 so‘m*\n"
             "🔹 *Eng ko‘p: 30 000 000 so‘m*\n\n"
             "💸 To‘ldirish summasini kiriting 👇",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=kb.uz_inline_back
         )
 
         await state.set_state(UzUserReg.amount)
     else:
         await message.answer_photo(
-            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Endi karta raqamini kiriting (16 ta raqam):",
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Endi karta raqamini kiriting (16 ta raqam):", reply_markup=kb.uz_inline_back
     )
         await state.set_state(UzUserReg.card_number)
 
@@ -206,7 +207,7 @@ async def process_amount(message: Message, state: FSMContext):
 
 
     await message.answer_photo(
-            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Endi karta raqamini kiriting (16 ta raqam):",
+            photo="https://i.ibb.co/G4PYwX4Z/photo-2025-06-26-18-32-06.jpg", caption=    "💳 Endi karta raqamini kiriting (16 ta raqam):", reply_markup=kb.uz_inline_back
     )
     await state.set_state(UzUserReg.card_number)
 
@@ -269,7 +270,7 @@ async def process_card_number(message: Message, state: FSMContext):
 
     if data['type'] == 'withdraw':
         await state.set_state(UzUserReg.confirm_code)
-        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Iltimos, tasdiqlash kodini kiriting 👇")
+        await message.answer_photo(photo="https://i.ibb.co/W47HRyCM/photo-2025-06-21-17-00-51.jpg", caption="Iltimos, tasdiqlash kodini kiriting 👇", reply_markup=kb.uz_inline_back)
     else:
         await state.set_state(UzUserReg.summary)
         await show_summary(message, state)

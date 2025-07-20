@@ -10,6 +10,9 @@ ru_back = ReplyKeyboardMarkup(
     resize_keyboard=True  
 )
 
+ru_inline_back = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="🔙 Назад", callback_data="russian")]
+])
 
 ru_options = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="💰 Пополнить", callback_data='ru_deposit')],
